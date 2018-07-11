@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
+#include "LowPower.h"
 
 //#define DEBUG 1
 
@@ -11,7 +12,9 @@
 #define PIR_WARMUP_TIME 30000
 #define TEST_PIR_WARMUP_TIME 2000
 #define LIGHT_ON_DURATION 30000
-#define DARKNESS_MAX 1000
+#define DARKNESS_MAX 950
+// go to sleep after this period of being bright
+#define SLEEP_THRESHOLD 30000
 
 //Adafruit_TCS34725 tcs = Adafruit_TCS34725();
 
@@ -19,6 +22,7 @@ int LED_VALUE = 0;
 boolean motion_detected_now = false;
 boolean motion_detected_prev = false;
 unsigned long switch_off_time = 0;
+unsigned long bright_since = 0;
 
 const bool detect_motion(){
   const int value = digitalRead(PIR_PIN);
@@ -113,7 +117,7 @@ void blink_leds(unsigned long delay_ms = 1000){
 
 
 void setup() {
-  Serial.begin(57600);
+  Serial.begin(115200);
   Serial.println("Starting setup");
   pinMode(RED_LED_PIN, OUTPUT);
   pinMode(GREEN_LED_PIN, OUTPUT);
@@ -180,7 +184,7 @@ void loop() {
       }else{
         // either LEDs are off or we need to wait until the 
         // light-on-time is over
-      }   
+      }
     }
   }else{ // Room is bright enough
     if(isLEDOn() && switch_off_time < current_time){
@@ -189,8 +193,16 @@ void loop() {
         // We dont care about motion in case of bright rooms
         // we already know the lights are not pending, so there
         // is nothing to do.
-    }  
+    }
+    // if its bright for longer than 30 seconds we can go to sleep
+    if(switch_off_time + SLEEP_THRESHOLD < current_time){
+#ifdef DEBUG
+      Serial.println("Its bright enough. Time to sleep");
+      delay(500);
+#endif
+      LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); 
+    }
   }
 
-  delay(2000);
+  delay(1000);
 }
