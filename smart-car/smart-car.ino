@@ -7,10 +7,21 @@
 
 
 //#define BRIGHTNESS_MAX 900 replaced by potentiometer
+
 #define BRIGHTNESS_MIN 100
 #define BRIGHTNESS_MIN_DELTA 30
 #define MIN_DISTANCE 10 
 #define DRIVE_DURATION 100
+//----------------
+
+// consider switching to defines instead (for consistency)
+const int motorPin1 = 6;
+const int motorPin2 = 7;
+const int motorPin3 = 8;
+const int motorPin4 = 9;
+const int motorPinEN1 = 10;
+const int motorPinEN2 = 11;
+const int defaultSpeed = 125;
 
 int sensorValueLeft = 0;
 int sensorValueRight = 0;
@@ -24,7 +35,14 @@ int obstacleDistance = 0;
 #define ECHO_PIN 2
 #define ECHO_INT 0   // The HC_SR04 echo pin is connected to Arduino pin 2 which is interrupt id 0)  
 
-HC_SR04 sensor(TRIGGER_PIN, ECHO_PIN, ECHO_INT);  // Create the sensor object
+HC_SR04 hcsr04(TRIGGER_PIN, ECHO_PIN, ECHO_INT);  // Create the sensor object
+
+
+#include <MPU6050_tockn.h>
+#include <Wire.h>
+
+MPU6050 mpu6050(Wire);
+unsigned long timer = 0;
 
 enum direction_t {
   STOP,
@@ -37,7 +55,6 @@ enum direction_t {
 // when lost: should we check if there was light before (since restart)
 // and drive back if so ? (max since start > MIN )
 const direction_t getDirection(int left, int right, int brightnessMax) {
-  
   if (left <= BRIGHTNESS_MIN && right <= BRIGHTNESS_MIN) {
     return LOST;
   } else if (left > brightnessMax && right > brightnessMax) {
@@ -54,20 +71,6 @@ const direction_t getDirection(int left, int right, int brightnessMax) {
 
 
 
-//----------------
-/*
-Adafruit Arduino - Lesson 15. Bi-directional Motor
-*/
-
-//const int enablePin = 11; needs PWM
-
-const int motorPin1 = 6;
-const int motorPin2 = 7;
-const int motorPin3 = 8;
-const int motorPin4 = 9;
-const int motorPinEN1 = 10;
-const int motorPinEN2 = 11;
-const int defaultSpeed = 125;
 
 const String directionToString(const direction_t direction) {
   switch (direction) {
@@ -146,7 +149,6 @@ void setSpeedMotor2(const unsigned int value){
 }
 
 
-// FIXME use enable pin: off, adjust, on
 void driveForwards(unsigned long duration){
   Serial.println("Starting motor 1");
   digitalWrite(motorPin1, HIGH);
@@ -156,7 +158,6 @@ void driveForwards(unsigned long duration){
   digitalWrite(motorPin3, LOW);
 }
 
-// FIXME use enable pin: off, adjust, on
 void driveBackwards(unsigned long duration){
   Serial.println("Starting motor 2");
   digitalWrite(motorPin2, HIGH);
@@ -185,18 +186,12 @@ void turnRight(){
 }
 
 const unsigned int getDistance(){
-  sensor.start();                      // Start the sensor
-  while(!sensor.isFinished()) {};   // If the sensor does not have a reading, continue
-  const int range = sensor.getRange();
+  hcsr04.start();                   // Start the sensor
+  while(!hcsr04.isFinished()) {};   // Fixme: make this non blocking without breaking its evaluation (we need Maybe Int)
+  const int range = hcsr04.getRange();
   Serial.println(String(range) + " cm");
   return range;
 }
-
-#include <MPU6050_tockn.h>
-#include <Wire.h>
-
-MPU6050 mpu6050(Wire);
-long timer = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -216,7 +211,7 @@ void setup() {
   pinMode(LED_PIN_RIGHT, OUTPUT);
 
   pinMode(POTENTIOMETER_PIN, INPUT);
-  sensor.begin();
+  hcsr04.begin();
   
   setSpeedMotor1(defaultSpeed);
   setSpeedMotor2(defaultSpeed);
