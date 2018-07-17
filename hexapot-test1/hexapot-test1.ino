@@ -9,6 +9,11 @@ using namespace std;
 //Y = Coxa (Hip Horizontal)
 //Z = Femur (Hip Vertical)
 
+enum pulse_value_t {
+  DEGREE,
+  PULSE
+};
+
 std::vector<String> legPositions;
 std::vector<String> legList;
 std::vector<std::pair<int, int> > legSequence;
@@ -20,12 +25,17 @@ const std::vector<int> coxaPins = {
 
 
 const std::vector<int> rightRearJoints = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
-const std::vector<int> rightMidJoints = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
-const std::vector<int> rightFrontJoints = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
+const std::vector<int> rightMidJoints = {cRMCoxaPin , cRMFemurPin , cRMTibiaPin};
+const std::vector<int> rightFrontJoints = {cRFCoxaPin , cRFFemurPin , cRFTibiaPin};
 
-const std::vector<int> leftRearJoints = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
-const std::vector<int> leftMidJoints = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
-const std::vector<int> leftFrontJoints = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
+const std::vector<int> leftRearJoints = {cLRCoxaPin , cLRFemurPin , cLRTibiaPin};
+const std::vector<int> leftMidJoints = {cLMCoxaPin , cLMFemurPin , cLMTibiaPin};
+const std::vector<int> leftFrontJoints = {cLFCoxaPin , cLFFemurPin , cLFTibiaPin};
+
+const std::vector<vector<int>> legJoints ={
+  rightRearJoints ,rightMidJoints, rightFrontJoints,leftRearJoints, leftMidJoints,leftFrontJoints
+};
+
 
 /* const std::vector<int> xPins; */
 /* const std::vector<int> zPins; */
@@ -65,11 +75,6 @@ const vector<pair<int,int>> initPositions  = {
 };
 
 
-const std::vector<vector<int>> legJoints ={
-  rightRearJoints ,rightMidJoints, rightFrontJoints,leftMidJoints,leftFrontJoints
-};
-
-
 const unsigned int degreeToPulse(const int degree){
   /* DebugSerial.println("degree: " + String(degree)); */
   const double valPerDegree = 1000.0 / 90.0;
@@ -102,23 +107,28 @@ void moveSingleServo(const int servo, const int degree,  const int duration = 10
   move(servo, degreeToPulse(degree), duration, blocking);
 }
 
-const String getCommandSequence(const vector<int> pins, const vector<int> values, const int duration) {
-
+const String getCommandSequence(const vector<int> pins, const vector<int> values, const int duration, const pulse_value_t pulseValueType) {
   String cmd = "";
 
   for (std::size_t i = 0, e = pins.size(); i != e; ++i) {
-    cmd += String("#") + pins[i] + String("P") + degreeToPulse(values[i]);
+    if(pulseValueType == DEGREE){
+      cmd += String("#") + pins[i] + String("P") + degreeToPulse(values[i]);
+    }else{
+      cmd += String("#") + pins[i] + String("P") + values[i];
+    }
   }
   cmd += String("T") + duration;
   return cmd;
 }
 
-void moveCommandGroup(const vector<int> pins, const vector<int> values, const int duration) {
-  String cmd = getCommandSequence(pins, values, duration);
+void moveCommandGroup(const vector<int> pins, const vector<int> values, const int duration, const boolean blocking = true, const pulse_value_t pulseValueType = DEGREE) {
+  String cmd = getCommandSequence(pins, values, duration, pulseValueType);
   Serial.println("Executing command group:");
   Serial.println(cmd);
   SSCSerial.println(cmd);
-  delay(duration);
+  if(blocking){
+    delay(duration);
+  }
 }
 
 void defaultPosition() {
@@ -129,11 +139,9 @@ void defaultPosition() {
   vector<int> pins;
   vector<int> values;
   std::transform( initPositions.begin(), initPositions.end(), std::back_inserter( pins ), [](pair<int,int> pair_) { return pair_.first; });
-
   std::transform( initPositions.begin(), initPositions.end(), std::back_inserter( values ), [](pair<int,int> pair_) { return pair_.second; });
 
-  moveCommandGroup(pins, values, 1000);
-  delay(2000);
+  moveCommandGroup(pins, values, 2000);
 }
 
 void sitDown() {
@@ -143,15 +151,21 @@ void sitDown() {
 }
 
 
+// we could use std::transform and a lambda with modulus to extract the x,y,z vectors
+// that way, we could create a command group instead of non blocking single commands
 void initYAxis() {
-  // we could use std::transform and a lambda with modulus to extract the x,y,z vectors
-  // that way, we could create a command group instead of non blocking single commands
+  Serial.println("Running initYAxis");
+  std::vector<int> yPins;
+  std::vector<int> yValues;
+
   for (std::size_t i = 0, e = initPositions.size(); i != e; ++i) {
     if(i % 3 == Y_MOD){
-      moveSingleServo(initPositions[i].first, initPositions[i].second, 1000, false);
+      yPins.push_back(initPositions[i].first);
+      yValues.push_back(initPositions[i].second);
+      /* moveSingleServo(initPositions[i].first, initPositions[i].second, 1000, false); */
     }
   }
-  delay(2000);
+  moveCommandGroup(yPins, yValues, 1000);
 }
 
 // template programming seems to be not working / limited...
@@ -176,7 +190,6 @@ void standUp(const int xVal = 45, const int zVal = 10) {
   std::vector<int> xValues;
   std::vector<int> zValues;
 
-
   // Unfortunately std::function is not yet available in ArduinoSTL ...
   /* std::function<int(int)> f =[lowPinMax, lowPinSign, highPinSign](int pin) { */
   /*   if (pin <= lowPinMax) { */
@@ -188,9 +201,7 @@ void standUp(const int xVal = 45, const int zVal = 10) {
   /* std::transform( xPins.begin(), xPins.end(), std::back_inserter( xValues ), f); */
   /* std::transform( zPins.begin(), zPins.end(), std::back_inserter( zValues ), f); */
 
-
-
-  for (std::size_t i = 0, e = initPositions.size(); i != e; ++i) {
+  for (std::size_t i = 0, e = xPins.size(); i != e; ++i) {
     if (xPins[i] <= lowPinMax) {
       xValues.push_back(xVal * lowPinSign);
     } else {
@@ -206,49 +217,26 @@ void standUp(const int xVal = 45, const int zVal = 10) {
   moveCommandGroup(combine(xPins, zPins), combine(xValues, zValues), 3000);
 
   /* moveCommandGroup(zPins, zValues, 1000); */
-  delay(5000);
   DebugSerial.println("Done with stand up series");
 }
 
 void freeServos() {
-  String cmd;
-
-  //for(std::vector<T>::iterator it = v.begin(); it != v.end(); ++it) {
-  //    /* std::cout << *it; ... */
-  //}
-
+  vector<int> zeros(3,0);
+  Serial.println("Resettings servos");
   for (auto const& leg : legJoints) {
-    cmd = String("");
-    for (auto const& joint : leg) {
-      cmd += String("#") + joint + "P0";
-    }
-    cmd += "T200";
-    Serial.println("Resettings servos");
-    Serial.println(cmd);
-    SSCSerial.println(cmd);
+    moveCommandGroup(leg, zeros, 200, true, PULSE);
   }
-
 }
 
-const initializeVectors() {
-  /* legJoints.push_back(rightRearJoints); */
-  /* legJoints.push_back(rightMidJoints); */
-  /* legJoints.push_back(rightFrontJoints); */
-  /* legJoints.push_back(leftRearJoints); */
-  /* legJoints.push_back(leftMidJoints); */
-  /* legJoints.push_back(leftFrontJoints); */
-
-
-}
-
+void initializeVectors() { }
 
 void setup() {
   initializeVectors();
   freeServos();
   DebugSerial.begin(115200);
   SSCSerial.begin(115200);
-  delay(3000);
   sitDown();
+  delay(3000);
 }
 
 void loop() {
@@ -261,6 +249,5 @@ void loop() {
   standUp(45, 10);
   sitDown();
   freeServos();
-
   while(true){}
 }
