@@ -3,6 +3,39 @@
 
 using namespace std;
 
+enum joint_type_t {
+  COXA,
+  FEMUR,
+  TIBIA
+};
+
+enum site_t {
+  LEFT,
+  RIGHT
+};
+
+enum orientation_t {
+  REAR,
+  MID,
+  FRONT
+};
+
+// Example: Rear / Right
+struct position_t {
+  site_t site;
+  orientation_t orientation;
+};
+
+struct joint_t {
+  joint_type_t joint_type;
+  unsigned int pin;
+};
+
+struct leg_t{
+  vector<joint_t> joints;
+  String name;
+};
+
 enum pulse_value_t {
   DEGREE,
   PULSE
@@ -13,18 +46,15 @@ std::vector<String> legList;
 std::vector<std::pair<int, int> > legSequence;
 std::vector<String> legCommands;
 
-
-
-const std::vector<int> rightRearJoints = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
-const std::vector<int> rightMidJoints = {cRMCoxaPin , cRMFemurPin , cRMTibiaPin};
+const std::vector<int> rightRearJoints  = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
+const std::vector<int> rightMidJoints   = {cRMCoxaPin , cRMFemurPin , cRMTibiaPin};
 const std::vector<int> rightFrontJoints = {cRFCoxaPin , cRFFemurPin , cRFTibiaPin};
-
-const std::vector<int> leftRearJoints = {cLRCoxaPin , cLRFemurPin , cLRTibiaPin};
-const std::vector<int> leftMidJoints = {cLMCoxaPin , cLMFemurPin , cLMTibiaPin};
-const std::vector<int> leftFrontJoints = {cLFCoxaPin , cLFFemurPin , cLFTibiaPin};
+const std::vector<int> leftRearJoints   = {cLRCoxaPin , cLRFemurPin , cLRTibiaPin};
+const std::vector<int> leftMidJoints    = {cLMCoxaPin , cLMFemurPin , cLMTibiaPin};
+const std::vector<int> leftFrontJoints  = {cLFCoxaPin , cLFFemurPin , cLFTibiaPin};
 
 const std::vector<vector<int>> legJoints ={
-  rightRearJoints ,rightMidJoints, rightFrontJoints,leftRearJoints, leftMidJoints,leftFrontJoints
+  rightRearJoints ,rightMidJoints, rightFrontJoints, leftRearJoints, leftMidJoints, leftFrontJoints
 };
 
 
@@ -102,22 +132,50 @@ void moveSingleServo(const int servo, const int degree,  const int duration = 10
   move(servo, degreeToPulse(degree), duration, blocking);
 }
 
-const String getCommandSequence(const vector<int> pins, const vector<int> values, const int duration, const pulse_value_t pulseValueType) {
-  String cmd = "";
 
-  for (std::size_t i = 0, e = pins.size(); i != e; ++i) {
+// ------------------------------------
+/*
+  Experiment
+*/
+
+// first pro: we are not assuming the same size for pins and values anymore
+const String getCommandSequence(const vector<std::pair<int, int>> pairs, const int duration, const pulse_value_t pulseValueType){
+  String cmd = "";
+  for(const auto& pair: pairs){
     if(pulseValueType == DEGREE){
-      cmd += String("#") + pins[i] + String("P") + degreeToPulse(values[i]);
+      cmd += String("#") + pair.first + String("P") + degreeToPulse(pair.second);
     }else{
-      cmd += String("#") + pins[i] + String("P") + values[i];
+      cmd += String("#") + pair.first + String("P") + pair.second;
     }
   }
   cmd += String("T") + duration;
   return cmd;
 }
 
-void moveCommandGroup(const vector<int> pins, const vector<int> values, const int duration, const boolean blocking = true, const pulse_value_t pulseValueType = DEGREE) {
-  String cmd = getCommandSequence(pins, values, duration, pulseValueType);
+// ------------------------------------
+const String getCommandSequence(const vector<int> pins, const vector<int> values, const int duration, const pulse_value_t pulseValueType, const boolean performCorrection) {
+  String cmd = "";
+  int value;
+
+  for (std::size_t i = 0, e = pins.size(); i != e; ++i) {
+    if(performCorrection){
+      value = sideCorrection(pins[i], values[i]);
+    }else{
+      value = values[i];
+    }
+
+    if(pulseValueType == DEGREE){
+      cmd += String("#") + pins[i] + String("P") + degreeToPulse(value);
+    }else{
+      cmd += String("#") + pins[i] + String("P") + value;
+    }
+  }
+  cmd += String("T") + duration;
+  return cmd;
+}
+
+void moveCommandGroup(const vector<int> pins, const vector<int> values, const int duration, const boolean blocking = true, const pulse_value_t pulseValueType = DEGREE, const boolean performCorrection = false) {
+  String cmd = getCommandSequence(pins, values, duration, pulseValueType, performCorrection);
   Serial.println("Executing command group:");
   Serial.println(cmd);
   SSCSerial.println(cmd);
@@ -133,7 +191,7 @@ void defaultPosition() {
   std::transform( initPositions.begin(), initPositions.end(), std::back_inserter( pins ), [](pair<int,int> pair_) { return pair_.first; });
   std::transform( initPositions.begin(), initPositions.end(), std::back_inserter( values ), [](pair<int,int> pair_) { return pair_.second; });
 
-  moveCommandGroup(pins, values, 2000);
+  moveCommandGroup(pins, values, 1000);
 }
 
 void sitDown() {
@@ -172,7 +230,6 @@ void initYAxis() {
 
 void standUp(const int xVal = 45, const int zVal = 10) {
   DebugSerial.println("Starting stand up  series");
-  initYAxis();
 
   const int lowPinSign =  +1;
   const int highPinSign = -1;
@@ -198,6 +255,7 @@ void standUp(const int xVal = 45, const int zVal = 10) {
     } else {
       xValues.push_back(xVal * highPinSign);
     }
+
     if (zPins[i] <= lowPinMax) {
       zValues.push_back(zVal * lowPinSign);
     } else {
@@ -205,7 +263,7 @@ void standUp(const int xVal = 45, const int zVal = 10) {
     }
   }
 
-  moveCommandGroup(combine(xPins, zPins), combine(xValues, zValues), 500);
+  moveCommandGroup(combine(xPins, zPins), combine(xValues, zValues), 200);
   DebugSerial.println("Done with stand up series");
 }
 
@@ -229,21 +287,190 @@ void initializeVectors() {
   /* } */
 }
 
+// we currently assume the order: COXA, FEMUR, TIBIA until we have proper structs
+const vector<int> extractJoint(const vector<vector<int>> legs, const joint_type_t joint_type){
+  std::vector<int> joints;
+  for(auto const& leg: legs){
+    switch(joint_type){
+    case COXA:
+      joints.push_back(leg[0]);
+      break;
+    case FEMUR:
+      joints.push_back(leg[1]);
+      break;
+    case TIBIA:
+      joints.push_back(leg[2]);
+      break;
+    default:
+      break;
+    }
+  }
+  return joints;
+}
+
+/*
+        |            (Tripod A)            |              (Tripod B)
+  State Vertical Servo  | Horizontal Servo |  Vertical Servo |  Horizontal Servo
+  --------------------------------------------------------------------------------
+  INIT  |    Low        | Front            | Mid             | Rear
+    0   |    Low        | Front to Center  | Mid to High     | Rear to Center
+    1   |    Low        | Center to Rear   | High to Mid     | Center to Front
+    2   |    Low        | Rear             | Mid to Low      | Front
+    3   |    Low to Mid | Rear             | Low             | Front
+    4   |  Mid to High  | Rear to Center   | Low             | Front to Center
+    5   |  High to Mid  | Center to Front  | Low             | Center to Rear
+    6   |  Mid to Low   | Front            | Low             | Rear
+    7   |    Low        | Front            | Low(to Mid)     | Rear
+  END   |    Low        | Front            | Mid             | Rear
+*/
+
+const int sideCorrection(int pin, int value){
+  // remove duplication of these values...
+  // a normalize function for values per PIN ?
+  // or move it to the command group ?
+  const int lowPinSign =  +1;
+  const int highPinSign = -1;
+  const int lowPinMax = 15;
+
+  if (pin <= lowPinMax) {
+    return (value * lowPinSign);
+  } else {
+    return (value * highPinSign);
+  }
+}
+
+void walkForward(const int initialZ){
+  //  {Left Front Leg, Left Rear Leg, Right Center Leg}
+  const vector<vector<int>> tripodA = {leftFrontJoints, leftRearJoints, rightMidJoints};
+  // horizontal
+  const vector<int> tripodAYAxis = extractJoint(tripodA, COXA);
+  // vertical
+  const vector<int> tripodAZAxis =  extractJoint(tripodA, FEMUR);
+
+  //  {Left Center Leg, Right Front Leg, Right Rear Leg}
+  const vector<vector<int>> tripodB = { leftMidJoints, rightFrontJoints, rightRearJoints};
+  // horizontal
+  const vector<int> tripodBYAxis =extractJoint(tripodB, COXA);
+  // vertical
+  const vector<int> tripodBZAxis =extractJoint(tripodB, FEMUR);
+
+
+  /* const int leftHigh = 1000; */
+  /* const int leftMid = 1400; */
+  /* const int leftLow = 1800; */
+  /* const int rightHigh = 2000; */
+  /* const int rightMid  = 1600; */
+  /* const int rightLow  = 1200; */
+  /* const int pulseVS = 3000; */
+
+  const int yFFront  = -10; // 40; MAX
+  const int yFCenter = -30; // -20;
+  const int yFBack   = -50; // -90; MAX
+
+  const int yCFront  = 25; //50;
+  const int yCCenter = 0;
+  const int yCBack   = 25; //-50;
+
+  const int yRFront  = -30; // 0;
+  const int yRCenter = -60; //-45;
+  const int yRBack   = -90; //-90;
+
+  /* const int zLow     = -20; // -60; */
+  /* const int zMid     =  0; */
+  /* const int zHigh    = 20; // 60; */
+  const int zLow     = initialZ; // -60;
+  const int zMid     =  0;
+  const int zHigh    = initialZ + 60; // 60;
+
+  /* {Left Front Leg, Left Rear Leg, Right Center Leg} */
+  /* const vector<vector<int>> tripodA = {leftFrontJoints, leftRearJoints, rightMidJoints}; */
+  /* const vector<vector<int>> tripodB = { leftMidJoints, rightFrontJoints, rightRearJoints}; */
+
+  vector<int> sequenceTripodAZ = {zLow, zLow, zLow, zLow, zLow, zMid, zHigh, zMid, zLow, zLow};
+  vector<int> sequenceTripodBZ = {zLow, zMid, zHigh, zMid, zLow, zLow, zLow, zLow, zLow, zLow};
+
+  // should we generate this with a Y Axis helper?
+  vector<vector<int>> sequenceTripodAY = {
+    // should be front, but its INIT
+    {yFCenter, yRCenter, yCCenter},
+    {yFCenter, yRCenter, yCCenter},
+    {yFBack,   yRBack,   yCBack},
+    {yFBack,   yRBack,   yCBack},
+    {yFBack,   yRBack,   yCBack},
+    {yFCenter, yRCenter, yCCenter},
+    {yFFront,  yRFront,  yCFront},
+    {yFFront,  yRFront,  yCFront},
+    {yFFront,  yRFront,  yCFront},
+    {yFCenter, yRCenter, yCCenter}
+  };
+  vector<vector<int>> sequenceTripodBY = {
+    // should be back, but its INIT
+    {yCCenter, yFCenter, yRCenter},
+    {yCCenter, yFCenter, yRCenter},
+    {yCFront, yFFront, yRFront},
+    {yCFront, yFFront, yRFront},
+    {yCFront, yFFront, yRFront},
+    {yCCenter, yFCenter, yRCenter},
+    {yCBack, yFBack, yRBack},
+    {yCBack, yFBack, yRBack},
+    {yCBack, yFBack, yRBack},
+    {yCCenter, yFCenter, yRCenter}
+  };
+
+  const unsigned int sequenceLength = std::min(sequenceTripodAZ.size(), sequenceTripodBZ.size());
+  for (std::size_t i = 0; i != sequenceLength; ++i) {
+    std::vector<int> aValues(sequenceLength, sequenceTripodAZ[i]);
+    std::vector<int> bValues(sequenceLength, sequenceTripodBZ[i]);
+
+    /* std::vector<int> allValues = combine(aValues, bValues); */
+    /* std::vector<int> allJoints = combine(tripodAZAxis, tripodBZAxis); */
+    Serial.println("Walking step " + String(i) +" in progress");
+    moveCommandGroup(tripodAZAxis, aValues, 200, false, DEGREE, true);
+    moveCommandGroup(tripodBZAxis, bValues, 200, false, DEGREE, true);
+    moveCommandGroup(tripodAYAxis, sequenceTripodAY[i], 200, false, DEGREE, true);
+    moveCommandGroup(tripodBYAxis, sequenceTripodBY[i], 200, false, DEGREE, true);
+    delay(300);
+  }
+}
+
 void setup() {
   initializeVectors();
   freeServos();
   DebugSerial.begin(115200);
   SSCSerial.begin(115200);
   sitDown();
+  /* while(true){} */
   delay(3000);
 }
 
 void loop() {
+  int pauseTime = 3000;
   // x, z
-  standUp(70, 40);
-  standUp(45, 10);
-  standUp(20, -20);
+  standUp(60, 40);
+  standUp(40, 10);
+  standUp(30, 0); // could be the walking position
+  standUp(15, -20);
+  delay(pauseTime);
+
+  // -------------- test walking ----------------
+  Serial.println("Starting walking sequence");
+  walkForward(-20);
+  walkForward(-20);
+  walkForward(-20);
+  Serial.println("done with walking sequence");
+
+  /* // reset */
+  delay(pauseTime);
+  initYAxis();
+  standUp(15, -20);
+  // -------------- end of walking ----------------
+
+  standUp(10, -35);
   standUp(0, -50);
+
+  delay(pauseTime / 2 );
+
+  // go back to sleep aka relax
   standUp(20, -20);
   standUp(45, 10);
   sitDown();

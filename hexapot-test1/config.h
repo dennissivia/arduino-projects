@@ -135,17 +135,17 @@
 //#define cLFOffsetZ      -119    //Distance Z from center of the body to the Left Front coxa
 
 //--------------------------------------------------------------------
-// http://developercenter.robotstudio.com/BlobProxy/manuals/IRC5FlexPendantOpManual/images/xx0300000495-45330.png 
-// X Y Z axis for robots 
+// http://developercenter.robotstudio.com/BlobProxy/manuals/IRC5FlexPendantOpManual/images/xx0300000495-45330.png
+// X Y Z axis for robots
 //X = Tibai
 //Y = Hip Horizontal
-//Z = Hip Vertical 
+//Z = Hip Vertical
 
 //[START POSITIONS FEET]
-#define CHexInitZ	 75		
+#define CHexInitZ	 75
 #define CHexInitY  75
 #define CHexInitYR -70
-#define CHexInitYF 10
+#define CHexInitYF -10
 #define CHexInitX	80
 
 
@@ -158,12 +158,12 @@
 #define cRMInitPosZ     CHexInitZ
 
 #define cRFInitPosX     CHexInitX      //Start positions of the Right Front leg
-#define cRFInitPosY     CHexInitYF 
+#define cRFInitPosY     CHexInitYF
 #define cRFInitPosZ     CHexInitZ
 
 
 #define cLRInitPosX     -CHexInitX      //Start positions of the Left Rear leg
-#define cLRInitPosY     -CHexInitYR 
+#define cLRInitPosY     -CHexInitYR
 #define cLRInitPosZ     -CHexInitZ
 
 #define cLMInitPosX     -CHexInitX      //Start positions of the Left Middle leg
@@ -174,4 +174,3 @@
 #define cLFInitPosY     -CHexInitYF
 #define cLFInitPosZ     -CHexInitZ
 //--------------------------------------------------------------------
-
