@@ -1,13 +1,7 @@
 #include "config.h"
-
 #include <ArduinoSTL.h>
 
 using namespace std;
-
-// X Y Z axis for robots
-//X = Tibai
-//Y = Coxa (Hip Horizontal)
-//Z = Femur (Hip Vertical)
 
 enum pulse_value_t {
   DEGREE,
@@ -19,9 +13,6 @@ std::vector<String> legList;
 std::vector<std::pair<int, int> > legSequence;
 std::vector<String> legCommands;
 
-const std::vector<int> coxaPins = {
-  cRRCoxaPin , cRMCoxaPin , cRFCoxaPin , cLRCoxaPin , cLMCoxaPin , cLFCoxaPin
-};
 
 
 const std::vector<int> rightRearJoints = {cRRCoxaPin , cRRFemurPin , cRRTibiaPin};
@@ -37,15 +28,22 @@ const std::vector<vector<int>> legJoints ={
 };
 
 
-/* const std::vector<int> xPins; */
-/* const std::vector<int> zPins; */
-const vector<int> xPins = {cRRTibiaPin, cRMTibiaPin, cRFTibiaPin, cLRTibiaPin, cLMTibiaPin, cLFTibiaPin};
-const vector<int> zPins = {cRRFemurPin, cLFFemurPin, cLRFemurPin, cRFFemurPin, cLMFemurPin, cRMFemurPin};
-const vector<int> yPins;
-
+/*
+  defines used to dynamically extract all joints for a specific axis
+  using index % 3 == MY_MOD
+*/
 #define Y_MOD 0
 #define Z_MOD 1
 #define X_MOD 2
+
+/* std::vector<int> xPins; */
+/* std::vector<int> zPins; */
+/* std::vector<int> yPins; */
+
+// hard coded version for performance advantages
+const vector<int> xPins = {cRRTibiaPin, cRMTibiaPin, cRFTibiaPin, cLRTibiaPin, cLMTibiaPin, cLFTibiaPin};
+const vector<int> zPins = {cRRFemurPin, cRMFemurPin, cRFFemurPin, cLRFemurPin, cLMFemurPin, cLFFemurPin};
+const vector<int> yPins = {cRRCoxaPin , cRMCoxaPin , cRFCoxaPin , cLRCoxaPin , cLMCoxaPin , cLFCoxaPin};
 
 /* const int initPositions[18][2]  = { */
 const vector<pair<int,int>> initPositions  = {
@@ -76,11 +74,8 @@ const vector<pair<int,int>> initPositions  = {
 
 
 const unsigned int degreeToPulse(const int degree){
-  /* DebugSerial.println("degree: " + String(degree)); */
   const double valPerDegree = 1000.0 / 90.0;
   const double val = (degree * valPerDegree) + PulseOffset;
-  /* DebugSerial.println("Pulse: " + String(val)); */
-
   // double -> int
   return int(val);
 }
@@ -132,12 +127,9 @@ void moveCommandGroup(const vector<int> pins, const vector<int> values, const in
 }
 
 void defaultPosition() {
-  /* for(auto const &pair : initPositions){ */
-  /*     moveSingleServo(pair.first, pair.second, 1000, false); */
-  /* } */
-
   vector<int> pins;
   vector<int> values;
+
   std::transform( initPositions.begin(), initPositions.end(), std::back_inserter( pins ), [](pair<int,int> pair_) { return pair_.first; });
   std::transform( initPositions.begin(), initPositions.end(), std::back_inserter( values ), [](pair<int,int> pair_) { return pair_.second; });
 
@@ -155,17 +147,16 @@ void sitDown() {
 // that way, we could create a command group instead of non blocking single commands
 void initYAxis() {
   Serial.println("Running initYAxis");
-  std::vector<int> yPins;
   std::vector<int> yValues;
 
   for (std::size_t i = 0, e = initPositions.size(); i != e; ++i) {
     if(i % 3 == Y_MOD){
+      std::vector<int> yPins;
       yPins.push_back(initPositions[i].first);
       yValues.push_back(initPositions[i].second);
-      /* moveSingleServo(initPositions[i].first, initPositions[i].second, 1000, false); */
     }
   }
-  moveCommandGroup(yPins, yValues, 1000);
+  moveCommandGroup(yPins, yValues, 400);
 }
 
 // template programming seems to be not working / limited...
@@ -214,9 +205,7 @@ void standUp(const int xVal = 45, const int zVal = 10) {
     }
   }
 
-  moveCommandGroup(combine(xPins, zPins), combine(xValues, zValues), 3000);
-
-  /* moveCommandGroup(zPins, zValues, 1000); */
+  moveCommandGroup(combine(xPins, zPins), combine(xValues, zValues), 500);
   DebugSerial.println("Done with stand up series");
 }
 
@@ -228,7 +217,17 @@ void freeServos() {
   }
 }
 
-void initializeVectors() { }
+void initializeVectors() {
+  /* for (std::size_t i = 0, e = initPositions.size(); i != e; ++i) { */
+  /*   if(i % 3 == X_MOD){ */
+  /*     xPins.push_back(initPositions[i].first); */
+  /*   }else if(i % 3 == Y_MOD){ */
+  /*     yPins.push_back(initPositions[i].first); */
+  /*   }else if(i % 3 == Z_MOD){ */
+  /*     zPins.push_back(initPositions[i].first); */
+  /*   } */
+  /* } */
+}
 
 void setup() {
   initializeVectors();
