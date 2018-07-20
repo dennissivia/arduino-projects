@@ -142,11 +142,11 @@
 //Z = Hip Vertical
 
 //[START POSITIONS FEET]
-#define CHexInitZ	 75
-#define CHexInitY  75
+#define CHexInitZ	  85
+#define CHexInitY   75
 #define CHexInitYR -70
 #define CHexInitYF -10
-#define CHexInitX	80
+#define CHexInitX	  60
 
 
 #define cRRInitPosX     CHexInitX      //Start positions of the Right Rear leg
@@ -167,7 +167,7 @@
 #define cLRInitPosZ     -CHexInitZ
 
 #define cLMInitPosX     -CHexInitX      //Start positions of the Left Middle leg
-#define cLMInitPosY      0
+#define cLMInitPosY     0
 #define cLMInitPosZ     -CHexInitZ
 
 #define cLFInitPosX     -CHexInitX      //Start positions of the Left Front leg
