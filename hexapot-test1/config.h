@@ -143,9 +143,9 @@
 
 //[START POSITIONS FEET]
 #define CHexInitZ	  85
-#define CHexInitY   75
+#define CHexInitYC  0
 #define CHexInitYR -70
-#define CHexInitYF -10
+#define CHexInitYF -30
 #define CHexInitX	  60
 
 
@@ -154,7 +154,7 @@
 #define cRRInitPosZ     CHexInitZ
 
 #define cRMInitPosX     CHexInitX      //Start positions of the Right Middle leg
-#define cRMInitPosY     0
+#define cRMInitPosY     CHexInitYC
 #define cRMInitPosZ     CHexInitZ
 
 #define cRFInitPosX     CHexInitX      //Start positions of the Right Front leg
@@ -167,7 +167,7 @@
 #define cLRInitPosZ     -CHexInitZ
 
 #define cLMInitPosX     -CHexInitX      //Start positions of the Left Middle leg
-#define cLMInitPosY     0
+#define cLMInitPosY     CHexInitYC
 #define cLMInitPosZ     -CHexInitZ
 
 #define cLFInitPosX     -CHexInitX      //Start positions of the Left Front leg
