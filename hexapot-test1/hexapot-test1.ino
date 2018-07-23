@@ -41,20 +41,17 @@ enum pulse_value_t {
   PULSE
 };
 
-// -10, -30, -50
-const int yFFront  = -10; // 20; // 40; MAX
-const int yFCenter = -30; // -20;
-const int yFBack   = -50; // Theoretical: -70; // -90; MAX
+const int yFFront  =  20;
+const int yFCenter =   0;
+const int yFBack   = -20;
 
-// 25, 0, 25
-const int yCFront  = 15; // 30; //50;
-const int yCCenter = 0; //15;
-const int yCBack   = -15; // -5; //-50;
+const int yCFront  =  20;
+const int yCCenter =   0;
+const int yCBack   = -20;
 
-// -30, -60, -90
-const int yRFront  =   0; // -20; // Theoretical: 10; // 0;
-const int yRCenter = -20; // -50; //-45;
-const int yRBack   = -40; //-90;
+const int yRFront  =  20;
+const int yRCenter =   0;
+const int yRBack   = -20;
 
 std::vector<String> legList;
 std::vector<std::pair<int, int> > legSequence;
@@ -327,8 +324,8 @@ const int sideCorrection(int pin, int value){
 }
 
 
-void walkForward(const int initialZ, const unsigned int rounds){
-  tripodGait(initialZ, rounds);
+void walkForward(const int initialX, const int initialZ, const unsigned int rounds){
+  tripodGait(initialX, initialZ, rounds);
 }
 
 /*
@@ -336,24 +333,24 @@ void walkForward(const int initialZ, const unsigned int rounds){
   State Vertical Servo  | Horizontal Servo |  Vertical Servo |  Horizontal Servo
   --------------------------------------------------------------------------------
   INIT  |    Low        | Front            | Mid             | Rear
-  0   |    Low        | Front to Center  | Mid to High     | Rear to Center
-  1   |    Low        | Center to Rear   | High to Mid     | Center to Front
-  2   |    Low        | Rear             | Mid to Low      | Front
-  3   |    Low to Mid | Rear             | Low             | Front
-  4   |  Mid to High  | Rear to Center   | Low             | Front to Center
-  5   |  High to Mid  | Center to Front  | Low             | Center to Rear
-  6   |  Mid to Low   | Front            | Low             | Rear
-  7   |    Low        | Front            | Low(to Mid)     | Rear
+    0   |    Low        | Front to Center  | Mid to High     | Rear to Center
+    1   |    Low        | Center to Rear   | High to Mid     | Center to Front
+    2   |    Low        | Rear             | Mid to Low      | Front
+    3   |    Low to Mid | Rear             | Low             | Front
+    4   |  Mid to High  | Rear to Center   | Low             | Front to Center
+    5   |  High to Mid  | Center to Front  | Low             | Center to Rear
+    6   |  Mid to Low   | Front            | Low             | Rear
+    7   |    Low        | Front            | Low(to Mid)     | Rear
   END   |    Low        | Front            | Mid             | Rear
 */
 
 void tripodGait(const int initialX, const int initialZ, const unsigned int rounds){
   const int zLow     = initialZ; // -60; MAX // make sure we are really low to stabilize the lifted legs
-  const int zMid     = initialZ + 25;
-  const int zHigh    = initialZ + 50; // 60;
+  const int zMid     = initialZ + 15;
+  const int zHigh    = initialZ + 30; // 60;
 
-  const int xClose   = intialX;
-  const int xFar     = initialX +15
+  const int xClose   = initialX;
+  const int xFar     = initialX + 15;
 
   //  {Left Front Leg, Left Rear Leg, Right Center Leg}
   const vector<vector<int>> tripodA = {leftFrontJoints, rightMidJoints, leftRearJoints };
@@ -368,7 +365,6 @@ void tripodGait(const int initialX, const int initialZ, const unsigned int round
   const vector<int> tripodBYAxis =extractJoint(tripodB, COXA);
   // vertical
   const vector<int> tripodBZAxis =extractJoint(tripodB, FEMUR);
-
 
   vector<int> sequenceTripodAZ = {
     zLow, zLow, zLow, zMid,
@@ -409,7 +405,7 @@ void tripodGait(const int initialX, const int initialZ, const unsigned int round
     {yRBack,   yCBack,   yRBack}
   };
 
-  const int pulseWidth = 500;
+  const int pulseWidth = 200;
   const unsigned int sequenceLength = std::min(sequenceTripodAZ.size(), sequenceTripodBZ.size());
 
   for(int r = 0; r < rounds; ++r) {
@@ -421,11 +417,12 @@ void tripodGait(const int initialX, const int initialZ, const unsigned int round
 
       moveCommandGroup(tripodAZAxis, aValues, pulseWidth, false, DEGREE, true);
       moveCommandGroup(tripodBZAxis, bValues, pulseWidth, false, DEGREE, true);
-      delay(pulseWidth/5); // make sure the leg is lifted / lowered before moving COXA
+      delay(pulseWidth/10); // make sure the leg is lifted / lowered before moving COXA
       moveCommandGroup(tripodAYAxis, sequenceTripodAY[step], pulseWidth, false, DEGREE, true);
       moveCommandGroup(tripodBYAxis, sequenceTripodBY[step], pulseWidth, false, DEGREE, true);
+
+      delay(pulseWidth); // make sure the leg is lifted / lowered before moving COXA
     }
-    delay(200);
   }
 }
 
@@ -474,7 +471,7 @@ void setup() {
   // play tone, lid LED whatever
 
   sleepPosistion();
-  while(true){}
+  /* while(true){} */
   /* delay(2000); */
   /* upDownSequence(); */
   /* while(true){} */
@@ -484,23 +481,22 @@ void setup() {
 void loop() {
   const unsigned int pauseTime = 2000;
   // x, z
-  adjustHeight(30, 20);
-  adjustHeight(15, 0);
+  adjustHeight(40, 30);
+  /* adjustHeight(15, 0); */
   /* adjustHeight(-15, -20); */
   delay(pauseTime);
 
   // -------------- test walking ----------------
   Serial.println("Starting walking sequence");
   /* firstStep(0); */
-  walkForward(15, 0, 2);
+  walkForward(30, 20, 6);
   Serial.println("done with walking sequence");
 
   /* // reset */
   delay(pauseTime);
   initYAxis();
-  adjustHeight(15, 0);
-  // -------------- end of walking ----------------
   adjustHeight(30, 20);
+  // -------------- end of walking ----------------
   endSequence();
   while(true){}
 }

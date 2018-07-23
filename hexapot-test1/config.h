@@ -108,7 +108,8 @@
 #define cLFTibiaMin1    -400
 #define cLFTibiaMax1    750
 //--------------------------------------------------------------------
-////[BODY DIMENSIONS]
+//[BODY DIMENSIONS]
+// These are necessary for inverse kinemetics for the leg joints
 //#define cCoxaLength     35      //1.14" = 29mm (1.14 * 25.4)
 //#define cFemurLength    80     //2.25" = 57mm (2.25 * 25.4)
 //#define cTibiaLength    120    //5.55" = 141mm (5.55 * 25.4)
@@ -144,8 +145,8 @@
 //[START POSITIONS FEET]
 #define CHexInitZ	  85
 #define CHexInitYC  0
-#define CHexInitYR -70
-#define CHexInitYF -30
+#define CHexInitYR  0
+#define CHexInitYF  0
 #define CHexInitX	  60
 
 
