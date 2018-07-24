@@ -1,19 +1,5 @@
-//Project Lynxmotion Phoenix
-//Description: chr-3, configuration file.
-//      All Hardware connections (excl controls) and body dimensions
-//      are configurated in this file. Can be used with V2.0 and above
-//Configuration version: V1.0
-//Date: Nov 1, 2009
-//Programmer: Kurt (aka KurtE)
-//
-//Hardware setup: ABB2 with ATOM 28 Pro, SSC32 V2, (See further for connections)
-//
-//NEW IN V1.0
-//   - First Release
-//
-//--------------------------------------------------------------------
-// Which type of control(s) do you want to compile in
-#define DebugSerial         Serial
+
+#define DebugSerial       Serial
 #define SSCSerial         Serial1
 
 #define SSCMaxPulse  2500
@@ -24,20 +10,17 @@
 #define ServoMax  +1 * SSCBase
 
 
-
-//[SERIAL CONNECTIONS]
-#define cSSC_OUT         P19//19      	//Output pin for (SSC32 RX) on BotBoard (Yellow)
-#define cSSC_IN          P18//18      	//Input pin for (SSC32 TX) on BotBoard (Blue)
-#//define cSSC_BAUD        I38400   //SSC32 BAUD rate
-#define cSSC_BAUD        I115200   	//SSC32 BAUD rate
-#define	cSSC_BINARYMODE	0			// Define if your SSC-32 card supports binary mode.
+#define SSC_BAUD         115200
+#define DEBUG_BAUD       115200
 //--------------------------------------------------------------------
+
 //[Arduino Pin Numbers]
-#define SOUND_PIN    22
-#define PS2_DAT    5    // 10
-#define PS2_CMD    6    // 11
-#define PS2_SEL    7    // 12
-#define PS2_CLK    8    // 13
+#define BUZZER_PIN    22
+#define ECHO_PIN       2
+#define TRIG_PIN       3
+#define LEFT_LED_PIN   9
+#define RIGHT_LED_PIN 10
+
 
 //--------------------------------------------------------------------
 //[SSC PIN NUMBERS]
@@ -66,60 +49,73 @@
 #define cLFTibiaPin     26   //Front Left leg Knee
 //--------------------------------------------------------------------
 //[MIN/MAX ANGLES]
-#define cRRCoxaMin1     -650      //Mechanical limits of the Right Rear Leg
-#define cRRCoxaMax1     650
-#define cRRFemurMin1    -900
-#define cRRFemurMax1    550
-#define cRRTibiaMin1    -400
-#define cRRTibiaMax1    750
+/* #define CHexInitZ	  85  // MIN: -90 // MAX 90 */
+/* #define CHexInitYC   0  // MIN: -80 // MAX: 70 */
+/* #define CHexInitYR   0  // MIN: -65 // MAX 65 */
+/* #define CHexInitYF   0  // MIN: -90 // MAX: 50 */
+/* #define CHexInitX	  60  // MIN -90 // MAX 82 */
 
-#define cRMCoxaMin1     -650      //Mechanical limits of the Right Middle Leg
-#define cRMCoxaMax1     650
-#define cRMFemurMin1    -900
-#define cRMFemurMax1    550
-#define cRMTibiaMin1    -400
-#define cRMTibiaMax1    750
+//Mechanical limits of the Right Rear Leg
+#define cRRCoxaMin1     -65
+#define cRRCoxaMax1     65
+#define cRRFemurMin1    -90
+#define cRRFemurMax1    90
+#define cRRTibiaMin1    -90
+#define cRRTibiaMax1    82
 
-#define cRFCoxaMin1     -650      //Mechanical limits of the Right Front Leg
-#define cRFCoxaMax1     650
-#define cRFFemurMin1    -900
-#define cRFFemurMax1    550
-#define cRFTibiaMin1    -400
-#define cRFTibiaMax1    750
+//Mechanical limits of the Right Middle Leg
+#define cRMCoxaMin1     -80
+#define cRMCoxaMax1     70
+#define cRMFemurMin1    -90
+#define cRMFemurMax1    90
+#define cRMTibiaMin1    -90
+#define cRMTibiaMax1    82
 
-#define cLRCoxaMin1     -650      //Mechanical limits of the Left Rear Leg
-#define cLRCoxaMax1     650
-#define cLRFemurMin1    -900
-#define cLRFemurMax1    550
-#define cLRTibiaMin1    -400
-#define cLRTibiaMax1    750
+//Mechanical limits of the Right Front Leg
+#define cRFCoxaMin1     -90
+#define cRFCoxaMax1     50
+#define cRFFemurMin1    -90
+#define cRFFemurMax1    90
+#define cRFTibiaMin1    -90
+#define cRFTibiaMax1    82
 
-#define cLMCoxaMin1     -650      //Mechanical limits of the Left Middle Leg
-#define cLMCoxaMax1     650
-#define cLMFemurMin1    -900
-#define cLMFemurMax1    550
-#define cLMTibiaMin1    -400
-#define cLMTibiaMax1    750
+//Mechanical limits of the Left Rear Leg
+#define cLRCoxaMin1     -65
+#define cLRCoxaMax1     65
+#define cLRFemurMin1    -90
+#define cLRFemurMax1    90
+#define cLRTibiaMin1    -90
+#define cLRTibiaMax1    82
 
-#define cLFCoxaMin1     -650      //Mechanical limits of the Left Front Leg
-#define cLFCoxaMax1     650
-#define cLFFemurMin1    -900
-#define cLFFemurMax1    550
-#define cLFTibiaMin1    -400
-#define cLFTibiaMax1    750
+//Mechanical limits of the Left Middle Leg
+#define cLMCoxaMin1     -80
+#define cLMCoxaMax1     70
+#define cLMFemurMin1    -90
+#define cLMFemurMax1    90
+#define cLMTibiaMin1    -90
+#define cLMTibiaMax1    82
+
+//Mechanical limits of the Left Front Leg
+#define cLFCoxaMin1     -90
+#define cLFCoxaMax1     50
+#define cLFFemurMin1    -90
+#define cLFFemurMax1    90
+#define cLFTibiaMin1    -90
+#define cLFTibiaMax1    82
+
 //--------------------------------------------------------------------
 //[BODY DIMENSIONS]
 // These are necessary for inverse kinemetics for the leg joints
-//#define cCoxaLength     35      //1.14" = 29mm (1.14 * 25.4)
-//#define cFemurLength    80     //2.25" = 57mm (2.25 * 25.4)
-//#define cTibiaLength    120    //5.55" = 141mm (5.55 * 25.4)
+#define cCoxaLength     35  // mm
+#define cFemurLength    100 // mm
+#define cTibiaLength    120 // mm
 //
-//#define cRRCoxaAngle1   -600   //Default Coxa setup angle, decimals = 1
-//#define cRMCoxaAngle1    0      //Default Coxa setup angle, decimals = 1
-//#define cRFCoxaAngle1    600      //Default Coxa setup angle, decimals = 1
-//#define cLRCoxaAngle1    -600   //Default Coxa setup angle, decimals = 1
-//#define cLMCoxaAngle1    0      //Default Coxa setup angle, decimals = 1
-//#define cLFCoxaAngle1    600      //Default Coxa setup angle, decimals = 1
+#define cRRCoxaAngle1   -60     //Default Coxa setup angle, decimals = 1
+#define cRMCoxaAngle1    0      //Default Coxa setup angle, decimals = 1
+#define cRFCoxaAngle1    60     //Default Coxa setup angle, decimals = 1
+#define cLRCoxaAngle1    -60    //Default Coxa setup angle, decimals = 1
+#define cLMCoxaAngle1    0      //Default Coxa setup angle, decimals = 1
+#define cLFCoxaAngle1    60     //Default Coxa setup angle, decimals = 1
 //
 //#define cRROffsetX      -69     //Distance X from center of the body to the Right Rear coxa
 //#define cRROffsetZ      119     //Distance Z from center of the body to the Right Rear coxa
@@ -143,11 +139,11 @@
 //Z = Hip Vertical
 
 //[START POSITIONS FEET]
-#define CHexInitZ	  85
-#define CHexInitYC  0
-#define CHexInitYR  0
-#define CHexInitYF  0
-#define CHexInitX	  60
+#define CHexInitZ	  85  // MIN: -90 // MAX 90
+#define CHexInitYC   0  // MIN: -80 // MAX: 70
+#define CHexInitYR   0  // MIN: -65 // MAX 65
+#define CHexInitYF   0  // MIN: -90 // MAX: 50
+#define CHexInitX	  60  // MIN -90 // MAX 82
 
 
 #define cRRInitPosX     CHexInitX      //Start positions of the Right Rear leg

@@ -462,16 +462,16 @@ void upDownSequence(){
 }
 
 void setup() {
-  DebugSerial.begin(115200);
-  SSCSerial.begin(115200);
+  DebugSerial.begin(DEBUG_BAUD);
+  SSCSerial.begin(SSC_BAUD);
   initializeVectors();
   freeServos();
   // initial startup delay
-  delay(2000);
+  /* delay(2000); */
   // play tone, lid LED whatever
 
   sleepPosistion();
-  /* while(true){} */
+  while(true){}
   /* delay(2000); */
   /* upDownSequence(); */
   /* while(true){} */
