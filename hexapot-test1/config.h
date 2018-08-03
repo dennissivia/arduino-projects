@@ -10,12 +10,13 @@
 #define ServoMax  +1 * SSCBase
 
 
+#define DEBUG 1
 #define SSC_BAUD         115200
 #define DEBUG_BAUD       115200
 //--------------------------------------------------------------------
 
 //[Arduino Pin Numbers]
-#define BUZZER_PIN    22
+#define BUZZER_PIN    10
 #define ECHO_PIN       2
 #define TRIG_PIN       3
 #define LEFT_LED_PIN   9
@@ -106,30 +107,41 @@
 //--------------------------------------------------------------------
 //[BODY DIMENSIONS]
 // These are necessary for inverse kinemetics for the leg joints
-#define cCoxaLength     35  // mm
-#define cFemurLength    100 // mm
-#define cTibiaLength    120 // mm
-//
-#define cRRCoxaAngle1   -60     //Default Coxa setup angle, decimals = 1
+#define COXA_LENGTH   28 // 35  // mm
+#define FEMUR_LENGTH 100 // mm
+#define TIBIA_LENGTH 120 // mm
+
+#define INITIAL_FRONT_REAR_ANGLE 60.0
+
+#define cRFCoxaAngle1    0     //Default Coxa setup angle, decimals = 1
 #define cRMCoxaAngle1    0      //Default Coxa setup angle, decimals = 1
-#define cRFCoxaAngle1    60     //Default Coxa setup angle, decimals = 1
-#define cLRCoxaAngle1    -60    //Default Coxa setup angle, decimals = 1
+#define cRRCoxaAngle1    0     //Default Coxa setup angle, decimals = 1
+#define cLRCoxaAngle1    0    //Default Coxa setup angle, decimals = 1
 #define cLMCoxaAngle1    0      //Default Coxa setup angle, decimals = 1
-#define cLFCoxaAngle1    60     //Default Coxa setup angle, decimals = 1
-//
-//#define cRROffsetX      -69     //Distance X from center of the body to the Right Rear coxa
-//#define cRROffsetZ      119     //Distance Z from center of the body to the Right Rear coxa
-//#define cRMOffsetX      -138    //Distance X from center of the body to the Right Middle coxa
-//#define cRMOffsetZ      0       //Distance Z from center of the body to the Right Middle coxa
-//#define cRFOffsetX      -69     //Distance X from center of the body to the Right Front coxa
-//#define cRFOffsetZ      -119    //Distance Z from center of the body to the Right Front coxa
-//
-//#define cLROffsetX      69      //Distance X from center of the body to the Left Rear coxa
-//#define cLROffsetZ      119     //Distance Z from center of the body to the Left Rear coxa
-//#define cLMOffsetX      138     //Distance X from center of the body to the Left Middle coxa
-//#define cLMOffsetZ      0       //Distance Z from center of the body to the Left Middle coxa
-//#define cLFOffsetX      69      //Distance X from center of the body to the Left Front coxa
-//#define cLFOffsetZ      -119    //Distance Z from center of the body to the Left Front coxa
+#define cLFCoxaAngle1    0     //Default Coxa setup angle, decimals = 1
+
+/* #define cRFCoxaAngle1    60     //Default Coxa setup angle, decimals = 1 */
+/* #define cRMCoxaAngle1    0      //Default Coxa setup angle, decimals = 1 */
+/* #define cRRCoxaAngle1   -60     //Default Coxa setup angle, decimals = 1 */
+/* #define cLRCoxaAngle1    -60    //Default Coxa setup angle, decimals = 1 */
+/* #define cLMCoxaAngle1    0      //Default Coxa setup angle, decimals = 1 */
+/* #define cLFCoxaAngle1    60     //Default Coxa setup angle, decimals = 1 */
+
+
+#define offsetXL1 42  // FrontRight
+#define offsetXL2 62  // Center
+#define offsetXL3 42  // Rear-Right
+#define offsetXL4 -42 // Rear-Left
+#define offsetXL5 -62 // Center-Left
+#define offsetXL6 -42 // Front-Left
+
+#define offsetYL1 82   // Front-Right
+#define offsetYL2 0    // Center Right
+#define offsetYL3 -82  // Rear-Right
+#define offsetYL4 -82  // Rear-Left
+#define offsetYL5 0    // Center-Left
+#define offsetYL6 82   // Front-Left
+
 
 //--------------------------------------------------------------------
 // http://developercenter.robotstudio.com/BlobProxy/manuals/IRC5FlexPendantOpManual/images/xx0300000495-45330.png
