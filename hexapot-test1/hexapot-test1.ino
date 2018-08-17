@@ -1,6 +1,7 @@
 #include "config.h"
 #include <ArduinoSTL.h>
 #include <math.h>
+#include <assert.h>
 
 #include <Wire.h>
 #include "i2c.h"
@@ -174,8 +175,8 @@ String moveCommandFor(int servo, int pulse, int time) {
 
 void move(int servo, int pulse, int time, const boolean blocking ) {
   String str = moveCommandFor(servo, pulse, time);
-  Serial.println(str);
-  Serial1.println(str);
+  DebugSerial.println(str);
+  SSCSerial.println(str);
   if (blocking) {
     delay(time);
   }
@@ -233,8 +234,10 @@ const String getCommandSequence(const vector<int> pins, const vector<int> values
 
 void moveCommandGroup(const vector<int> pins, const vector<int> values, const int duration, const boolean blocking = true, const pulse_value_t pulseValueType = DEGREE, const boolean performCorrection = false) {
   String cmd = getCommandSequence(pins, values, duration, pulseValueType, performCorrection);
+#if DEBUG_SSC
   Serial.println("Executing command group:");
   Serial.println(cmd);
+#endif
   SSCSerial.println(cmd);
   if(blocking){
     delay(duration);
@@ -584,7 +587,7 @@ void initializeBodyOffset(){
     0, // offsetXL3,
     0, // offsetXL4,
     0, // offsetXL5,
-    0 // offsetXL6,
+    0, // offsetXL6
   };
 
   bodyOffsetsY = {
@@ -593,7 +596,7 @@ void initializeBodyOffset(){
     0, // offsetYL3,
     0, // offsetYL4,
     0, // offsetYL5,
-    0 // offsetYL6,
+    0, // offsetYL6
   };
 
 }
@@ -679,14 +682,14 @@ void bodyIK(unsigned short legID, int posX, int posY, int rotX, int rotY, int ro
   double angleBodyCenterX = HALF_PI - atan2(totalY, totalX);
   /* double angleBodyCenterX = HALF_PI - abs(atan2(totalY, totalX)); */
 
-#ifdef DEBUG
-  /* Serial.println("***********"); */
-  /* Serial.println(atan2(totalY, totalX)); */
-  /* Serial.println(angleBodyCenterX); */
-  /* Serial.println("***********"); */
+#if DEBUG_IK
+  Serial.println("***********");
+  Serial.println(atan2(totalY, totalX));
+  Serial.println(angleBodyCenterX);
+  Serial.println("***********");
 #endif
 
-  // XXX I swapper the - totalX and - totalY .. not sure if that is correct
+  // XXX I swapped the - totalX and - totalY .. not sure if that is correct
   // calculate the new X/Y coordinates taking into account the degree of Y rotation
   // BodyIKX_1	cos(AngleBodyCenterX_1 + (RotY * PI/180)) * DistBodyCenterFeet_1 - TotalX_1
   bodyIKX[legID] = cos(angleBodyCenterX + (rotY * DEG_TO_RAD)) * distBodyCenterToFeet - totalY;
@@ -720,33 +723,43 @@ void legIK(unsigned short legID, unsigned long posX, unsigned long posY, unsigne
   // debugging
   xxxdistCoxaToFeet[legID] = distCoxaToFeet;
 
+  /* double l1      = nextLegPosY[legID]; */
+  double l1      = distCoxaToFeet;
+  double zOffset = nextLegPosZ[legID];
+  double l2 = l1 - COXA_LENGTH;
 
-  double l2 = distCoxaToFeet - COXA_LENGTH;
+  // XXX should double l = distCoxaToFeet; ?????
+  double l = sqrt(square(l2) + square(zOffset));
 
-  double l1 = sqrt(square(l2) + square(nextLegPosZ[legID]));
-  double l1_2 = square(l1);
+  double l_2 = square(l);
+  double t_2 = square(TIBIA_LENGTH);
+  double f_2 = square(FEMUR_LENGTH);
 
-  double a1 = atan(l2 / nextLegPosZ[legID]);
-  double a2 = acos((square(TIBIA_LENGTH) - square(FEMUR_LENGTH) - l1_2) / ( -2 * l1 * FEMUR_LENGTH));
+
+  // sin = opp/hyp
+  // cos = adj/hyp
+  // tan = opp/adj
+  // XXX we can compute a1 with acos or atan
+  double a1 = atan(l2 / zOffset);
+  /* double a1 = acos(zOffset / l); */
+  double a2 = acos((square(TIBIA_LENGTH) - square(FEMUR_LENGTH) - l_2) / ( -2 * l * FEMUR_LENGTH));
   double a  = a1 + a2; // the full angle alpha
   // acos((IKSW_1^2 - TibiaLength^2 - FemurLength^2)/(-2 * FemurLength * TibiaLength))
-  double b  = acos((l1_2 - square(TIBIA_LENGTH) - square(FEMUR_LENGTH)) / ( -2 * FEMUR_LENGTH * TIBIA_LENGTH));
+  double b  = acos((l_2 - square(TIBIA_LENGTH) - square(FEMUR_LENGTH)) / ( -2 * FEMUR_LENGTH * TIBIA_LENGTH));
 
   double g  = atan2(nextLegPosY[legID], nextLegPosX[legID]);
-  /* IKTibiaAngle_1	90 - TAngle_1 * 180/PI */
-  /* IKFemurAngle_1	90 - (IKA1_1 + IKA2_1) * 180/PI */
-  /* IKCoxaAngle_1	90 - atan2(NewPosY_1, NewPosX_1) * 180/PI */
-  legIKTibia[legID] = - (90 - b * RAD_TO_DEG);
+
+  legIKTibia[legID] = -1 * (90 - b * RAD_TO_DEG);
   legIKFemur[legID] = 90 - a * RAD_TO_DEG;
   // XXX we should add our real initial values here (asap)
   int initialCoxaAngle = 0;
   legIKCoxa[legID]  = initialCoxaAngle + g * RAD_TO_DEG;
 
-#ifdef DEBUG
-  /* Serial.println("alpha1: " + String(a1)); */
-  /* Serial.println("alpha2: " + String(a2)); */
-  /* Serial.println("alpha: "  + String(a)); */
-  /* Serial.println("beta: "   + String(b)); */
+#if DEBUG_IK
+  Serial.println("alpha1: " + String(a1));
+  Serial.println("alpha2: " + String(a2));
+  Serial.println("alpha: "  + String(a));
+  Serial.println("beta: "   + String(b));
   Serial.println("gamma (rad):"  + String(g));
   Serial.println("gamma (deg): "  + String(g * RAD_TO_DEG));
 #endif
@@ -790,19 +803,8 @@ void servoAngles(unsigned short legID){
 }
 
 void testIK(double posX = 0, double posY = 0, double posZ = 0, int rotX = 0, int rotY = 0, int rotZ = 0){
-  /* bodyIK(unsigned short legID, int posX, int posY, int rotX, int rotY, int rotZ){ */
-  /* legIK(unsigned short legID, unsigned long posX, unsigned long posY, unsigned long posZ){ */
-
-  /* double rotX = 0; */
-  /* double rotY = 20; */
-  /* double rotZ = 0; */
-  /* int posX = 0; */
-  /* int posZ = 0; */
-  /* int posY = 0; */
-
-#ifdef DEBUG
+#if DEBUG_IK
   Serial.println("-----------------------");
-
   Serial.println("** current Feet position vectors");
   debugVector(currentFeetPosX);
   debugVector(currentFeetPosY);
@@ -812,7 +814,7 @@ void testIK(double posX = 0, double posY = 0, double posZ = 0, int rotX = 0, int
   for(size_t i = 0; i < LEG_AMOUNT; i++){
     bodyIK(i, posX, posY, rotX, rotY, rotZ);
   }
-#ifdef DEBUG
+#if DEBUG_IK
   Serial.println("** dist body to feet (bodyIK)");
   debugVector(xxxdistBodyCenterToFeet);
 
@@ -830,7 +832,7 @@ void testIK(double posX = 0, double posY = 0, double posZ = 0, int rotX = 0, int
     legIK(i, posX, posY, posZ);
   }
 
-#ifdef DEBUG
+#if DEBUG_IK
   Serial.println("** next leg-position vectors");
   debugVector(nextLegPosX);
   debugVector(nextLegPosY);
@@ -846,8 +848,9 @@ void testIK(double posX = 0, double posY = 0, double posZ = 0, int rotX = 0, int
   for(size_t i = 0; i < LEG_AMOUNT; i++){
     servoAngles(i);
   }
-  String text;
 
+#if DEBUG_IK
+  String text;
   for(size_t i = 0; i < LEG_AMOUNT; i++){
     text = String("Servo angle Coxa[") + i + "] = " + servoCoxaAngle[i];
     Serial.println(text);
@@ -856,6 +859,7 @@ void testIK(double posX = 0, double posY = 0, double posZ = 0, int rotX = 0, int
     text = String("Servo angle Tibia[") + i + "] = " + servoTibiaAngle[i];
     Serial.println(text);
   }
+#endif
 
   vector<int> coxaPins  = {cRFCoxaPin, cRMCoxaPin, cRRCoxaPin, cLRCoxaPin, cLMCoxaPin, cLFCoxaPin};
   vector<int> femurPins = {cRFFemurPin, cRMFemurPin, cRRFemurPin, cLRFemurPin, cLMFemurPin, cLFFemurPin };
@@ -865,9 +869,27 @@ void testIK(double posX = 0, double posY = 0, double posZ = 0, int rotX = 0, int
   // XXX we have to remind the servo angles, since the IK gives us the change in angle??
   moveCommandGroup(femurPins, servoFemurAngle, 500, false, DEGREE, true);
   moveCommandGroup(tibiaPins, servoTibiaAngle, 500, false, DEGREE, true);
-  /* while(true); */
-  delay(200);
+  delay(500);
+}
 
+/* void applyIKtoServo(){ */
+/*   vector<int> coxaPins  = {cRFCoxaPin, cRMCoxaPin, cRRCoxaPin, cLRCoxaPin, cLMCoxaPin, cLFCoxaPin}; */
+/*   vector<int> femurPins = {cRFFemurPin, cRMFemurPin, cRRFemurPin, cLRFemurPin, cLMFemurPin, cLFFemurPin }; */
+/*   vector<int> tibiaPins = {cRFTibiaPin, cRMTibiaPin, cRRTibiaPin, cLRTibiaPin, cLMTibiaPin, cLFTibiaPin}; */
+
+/*   moveCommandGroup(coxaPins,  servoCoxaAngle,  500, false, DEGREE, true); */
+/*   // XXX we have to remind the servo angles, since the IK gives us the change in angle?? */
+/*   moveCommandGroup(femurPins, servoFemurAngle, 500, false, DEGREE, true); */
+/*   moveCommandGroup(tibiaPins, servoTibiaAngle, 500, false, DEGREE, true); */
+/*   /1* while(true); *1/ */
+/*   delay(800); */
+/* } */
+
+void moveSingleLeg(int legID, int posX, int posY, int posZ){
+  vector<int> femurPins = {cRFFemurPin, cRMFemurPin, cRRFemurPin, cLRFemurPin, cLMFemurPin, cLFFemurPin };
+
+  moveSingleServo(femurPins[legID], servoFemurAngle[legID] + posZ, 200, true);
+  moveSingleServo(femurPins[legID], servoFemurAngle[legID],  200, true);
 }
 
 void setup() {
@@ -876,71 +898,101 @@ void setup() {
   initializeVectors();
   freeServos();
   setupMPU();
+  moveSingleServo(cRFCoxaPin, 0, 300, true);
+  moveSingleServo(cRMCoxaPin, 0, 300, true);
+  moveSingleServo(cRRCoxaPin, 0, 300, true);
+  moveSingleServo(cLRCoxaPin, 0, 300, true);
+  moveSingleServo(cLMCoxaPin, 0, 300, true);
+  moveSingleServo(cLFCoxaPin, 0, 300, true);
+
   // initial startup delay
-  delay(2000);
+  delay(500);
   playStartTone();
   // play tone, lid LED whatever
   performMPUMeasurement();
   sleepPosistion();
   /* while(true){} */
-  /* delay(2000); */
-  /* upDownSequence(); */
-  /* while(true){} */
-  /* delay(2000); */
 }
 
 void loop() {
   const unsigned int pauseTime = 2000;
+  const unsigned int legLiftHeight = 40;
 
   // x, z
-  adjustHeight(50, 30);
+  /* adjustHeight(50, 30); */
   /* rotateBody(1); */
+  const int defaultHeight = 0;
   while(true){
     performMPUMeasurement();
     delay(1000);
 
-    /* moveSingleServo(cRFCoxaPin, 0, 3000, true); */
-    /* moveSingleServo(cRMCoxaPin, 0, 3000, true); */
-    /* moveSingleServo(cRRCoxaPin, 0, 3000, true); */
-    /* moveSingleServo(cLRCoxaPin, 0, 3000, true); */
-    /* moveSingleServo(cLMCoxaPin, 0, 3000, true); */
-    /* moveSingleServo(cLFCoxaPin, 0, 3000, true); */
-    // new UP down implementation
-    testIK(0, 0, 20);
-    testIK(0, 0, 70);
-    delay(3000);
-    testIK(0, 0, 40);
-    testIK(0, 0, 0);
+    testIK(0,0,defaultHeight,0,0,0);
+    delay(500);
+    playStartTone();
+    for(const auto& leg: {0,1,2}){
+      moveSingleLeg(leg, 0,0,legLiftHeight);
+    }
+    for(const auto& leg: {3,4,5}){
+      moveSingleLeg(leg, 0,0,-legLiftHeight);
+    }
 
-    /* testIK(0, 0, 40, 30, 0, 0); */
-    /* delay(3000); */
-    /* testIK(0, 0, 40); */
+    // Up Down
+    // 0 -> right angle to ground
+    // 50 -> lowest position possible
+    for(const auto& val: {30, 20, 0 ,20, 30 }){
+      playStartTone();
+      testIK(0,0,val,0,0,0);
+      delay(200);
+    }
 
-    /* testIK(0, 0, 40, 0, 30, 0); */
-    /* delay(3000); */
-    /* testIK(0, 0, 40); */
+    // not sure what this is used for...
+    // test did not have any insights so far
+    // for(const auto& val: {20, 10, 0 -10, 0 }){
+    //  playStartTone();
+    //  testIK(0,0,20,0,val,0);
+    //  delay(500);
+   // }
 
-    /* testIK(0, 0, 40, 0, 0, 30); */
-    /* delay(3000); */
-    /* testIK(0, 0, 40); */
+    // lean left right
+    for(const auto& val: {10, 0, -10, 0 }){
+      playStartTone();
+      testIK(0,0,defaultHeight,0,0,val);
+      delay(200);
+    }
+
+    // lean front back
+    for(const auto& val: {10, 25, 10, 0, -10, -25, 0 }){
+      playStartTone();
+      testIK(0,0,defaultHeight,val,0,0);
+      delay(200);
+    }
+
+    playStartTone();
+    testIK(0,0,defaultHeight,-10,0,0);
+    playStartTone();
+    moveCommandGroup({cRMCoxaPin, cLMCoxaPin}, {20, -20}, 1000, true);
+    delay(200);
+
+    moveCommandGroup({cRFFemurPin, cLFFemurPin}, {80, -80}, 1000, true);
+    delay(200);
+    moveCommandGroup({cRFFemurPin, cLFFemurPin}, {10, -10}, 1000, true);
+
+    playStartTone();
+    testIK(0, 0, 50);
+    delay(1000);
 
     break;
-
   }
 
-  /* adjustHeight(15, 0); */
-  /* adjustHeight(-15, -20); */
-  /* delay(pauseTime); */
 
+  // understand the concept of gaits with IK, first!
   // -------------- test walking ----------------
+  /* testIK(0,0,0,0,0,0); */
   /* Serial.println("Starting walking sequence"); */
-  /* /\* firstStep(0); *\/ */
   /* walkForward(30, 20, 6); */
   /* Serial.println("done with walking sequence"); */
   /* // reset */
   /* delay(pauseTime); */
-  initYAxis();
-  adjustHeight(30, 20);
   // -------------- end of walking ----------------
   shutDownSequence();
   while(true){}

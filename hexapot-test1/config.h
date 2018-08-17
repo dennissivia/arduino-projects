@@ -10,7 +10,10 @@
 #define ServoMax  +1 * SSCBase
 
 
-#define DEBUG 1
+#define DEBUG_SSC 1
+#define DEBUG_IK  1
+
+/* #define DEBUG 1 */
 #define SSC_BAUD         115200
 #define DEBUG_BAUD       115200
 //--------------------------------------------------------------------
