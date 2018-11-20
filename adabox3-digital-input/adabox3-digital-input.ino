@@ -2,19 +2,24 @@
 
 #include "config.h"
 #define BUTTON_PIN 5
-#define FEED_NAME "adabox3.digital"
+#define LED_PIN 16
+
+#define FEED_NAME_IN  "adabox3.digital-in"
+#define FEED_NAME_OUT "adabox3.digital-out"
 
 // button state
 bool current = false;
 bool last = false;
 
 // set up the 'digital' feed
-AdafruitIO_Feed *digital = io.feed(FEED_NAME);
+AdafruitIO_Feed *digital_in = io.feed(FEED_NAME_IN);
+AdafruitIO_Feed *digital_out= io.feed(FEED_NAME_OUT);
 
 void setup() {
 
   // set button pin as an input
   pinMode(BUTTON_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
 
   // start the serial connection
   Serial.begin(115200);
@@ -26,6 +31,8 @@ void setup() {
   Serial.print("Connecting to Adafruit IO");
   io.connect();
 
+  digital_out->onMessage(handleMessage);  
+
   // wait for a connection
   while(io.status() < AIO_CONNECTED) {
     Serial.print(".");
@@ -35,6 +42,7 @@ void setup() {
   // we are connected
   Serial.println();
   Serial.println(io.statusText());
+  digital_out->get();
 
 }
 
@@ -61,9 +69,24 @@ void loop() {
   // save the current state to the 'digital' feed on adafruit io
   Serial.print("sending button -> ");
   Serial.println(current);
-  digital->save(current);
+  digital_in->save(current);
 
   // store last button state
   last = current;
+}
 
+// this function is called whenever an 'digital' feed message
+// is received from Adafruit IO. it was attached to
+// the 'digital' feed in the setup() function above.
+void handleMessage(AdafruitIO_Data *data) {
+
+  Serial.print("received <- ");
+
+  if(data->toPinLevel() == HIGH)
+    Serial.println("HIGH");
+  else
+    Serial.println("LOW");
+
+
+  digitalWrite(LED_PIN, data->toPinLevel());
 }
