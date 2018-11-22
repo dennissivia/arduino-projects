@@ -1,5 +1,3 @@
-// Adafruit IO Digital Input Example
-
 #include "config.h"
 
 #define BUTTON_PIN 5
@@ -32,8 +30,6 @@ bool current = false;
 bool last = false;
 
 // ----
-
-/************************ Example Starts Here *******************************/
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
@@ -58,21 +54,14 @@ AdafruitIO_Feed *servo_feed = io1.feed(FEED_NAME_SERVO);
 Adafruit_SSD1306 oled = Adafruit_SSD1306(128, 32, &Wire);
 
 
-// ----------- servo  -------
-#if defined(ARDUINO_ARCH_ESP32)
-  // ESP32Servo Library (https://github.com/madhephaestus/ESP32Servo)
-  // installation: library manager -> search -> "ESP32Servo"
-  #include <ESP32Servo.h>
-#else
-  #include <Servo.h>
-#endif
+#include <Servo.h>
 Servo servo;
 
 
 
 void setup() {
-//  oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x32)
-//  oled.display();
+  oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x32)
+  oled.display();
   
   // set button pin as an input
   pinMode(BUTTON_PIN, INPUT);
@@ -123,8 +112,8 @@ void setup() {
   #endif
   
   // text display tests
-//  oled.setTextSize(1);
-//  oled.setTextColor(WHITE);
+  oled.setTextSize(1);
+  oled.setTextColor(WHITE);
 }
 
 void loop() {
@@ -137,7 +126,7 @@ void loop() {
   delay(300); // for DHT
   delay(500); // OLED
 
-  delay(2000);
+  delay(1000);
 }
 
 void performButtonReading(){
@@ -172,29 +161,20 @@ void performPhotocellReading(){
   if(abs(photo_current - photo_last) < 30)
     return;
 
-  // save the current state to the analog feed
   Serial.print("sending -> ");
   Serial.println(photo_current);
   analog_in->save(photo_current);
 
-  // store last photocell state
   photo_last = photo_current;
-
   // delay(300); // done in loop
 }
 
 void handleRgbMessage(AdafruitIO_Data *data){
   Serial.println("Received hex value: " + String(data->value()));
 
-  long int red   = data->toRed();
-  long int green = data->toGreen();
-  long int blue  = data->toBlue();
-  Serial.println(String(red));
-  Serial.println(String(green));
-  Serial.println(String(blue));
-  analogWrite(RED_PIN, 255 - red);
-  analogWrite(GREEN_PIN, 255 - green);
-  analogWrite(BLUE_PIN, 255 - blue);
+  analogWrite(RED_PIN, 255 - data->toRed());
+  analogWrite(GREEN_PIN, 255 - data->toGreen());
+  analogWrite(BLUE_PIN, 255 - data->toBlue());
 }
 
 void handleLedOnOffMessage(AdafruitIO_Data *data) {
@@ -217,8 +197,8 @@ void handleAnalogOutMessage(AdafruitIO_Data *data) {
 
 void performDHTReading(){
   sensors_event_t event;
+  
   dht.temperature().getEvent(&event);
-
   float celsius = event.temperature;
 
 #if DEBUG
@@ -229,38 +209,34 @@ void performDHTReading(){
 
   // save fahrenheit (or celsius) to Adafruit IO
   temperature->save(celsius);
-
   dht.humidity().getEvent(&event);
+  
 #if DEBUG
   Serial.print("humidity: ");
   Serial.print(event.relative_humidity);
   Serial.println("%");
 #endif
-  // save humidity to Adafruit IO
+
   humidity->save(event.relative_humidity);
 
-
-
   // -------- print it to the OLED
-//  oled.clearDisplay();
-//  oled.setCursor(0,0);
-//  oled.print("SSID: "); oled.println(WIFI_SSID);
-//  oled.print("IP: "); oled.println(WiFi.localIP());
-//  oled.print("Temp: "); oled.print(celsius,0); oled.print(" *C ");
-//  oled.print("Hum: "); oled.print(event.relative_humidity,0); oled.println(" %");
-//  oled.print("IO Status: ");
-//  aio_status_t aio_status = io.status();
-//  //Serial.print("Status: "); Serial.println(aio_status);
-//  switch (aio_status) {
-//     case AIO_IDLE:  oled.println("IDLE"); break;
-//     case AIO_DISCONNECTED:
-//     case AIO_NET_DISCONNECTED:  oled.println("DISCONNECT"); break;
-//     case AIO_NET_CONNECTED:
-//     case AIO_CONNECTED_INSECURE:
-//     case AIO_CONNECTED: oled.println("CONNECTED"); break;
-//  }
-//  oled.display();
-  // ----------------
+  oled.clearDisplay();
+  oled.setCursor(0,0);
+  oled.print("IP: "); oled.println(WiFi.localIP());
+  oled.print("Temp: "); oled.print(celsius,0); oled.println(" *C ");
+  oled.print("Hum : "); oled.print(event.relative_humidity,0); oled.println(" %");
+  oled.print("IO Status: ");
+  aio_status_t aio_status = io1.status();
+  Serial.print("Status: "); Serial.println(aio_status);
+  switch (aio_status) {
+     case AIO_IDLE:  oled.println("IDLE"); break;
+     case AIO_DISCONNECTED:
+     case AIO_NET_DISCONNECTED:  oled.println("DISCONNECT"); break;
+     case AIO_NET_CONNECTED:
+     case AIO_CONNECTED_INSECURE:
+     case AIO_CONNECTED: oled.println("CONNECTED"); break;
+  }
+  oled.display();
 
 //  delay(500); // done in loop
 }
