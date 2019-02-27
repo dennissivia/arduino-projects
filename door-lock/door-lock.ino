@@ -1,4 +1,5 @@
-#include <Keypad.h>
+// #include <Keypad.h>
+#include <OnewireKeypad.h>
 #include <EEPROM.h>
 #include <SPI.h>
 #include <MFRC522.h>
@@ -15,26 +16,31 @@
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 byte tagID[5]; // input buffer for the tag serial
 
-
-const byte numRows= 4; //number of rows on the keypad
-const byte numCols= 4; //number of columns on the keypad
-//char *inputBuffer;
 String inputBuffer;
 short int inputBufferPos = 0;
 
+// const byte numRows= 4; //number of rows on the keypad
+// const byte numCols= 4; //number of columns on the keypad
 //keymap defines the key pressed according to the row and columns just as appears on the keypad
-char keymap[numRows][numCols]= {
-  {'1', '2', '3', 'A'}, 
-  {'4', '5', '6', 'B'}, 
-  {'7', '8', '9', 'C'},
-  {'*', '0', '#', 'D'}
-};
+// char keymap[numRows][numCols]= {
+//   {'1', '2', '3', 'A'}, 
+//   {'4', '5', '6', 'B'}, 
+//   {'7', '8', '9', 'C'},
+//   {'*', '0', '#', 'D'}
+// };
+// byte rowPins[numRows] = {2,3,4,5}; //Rows 0 to 3
+// byte colPins[numCols] = {6,7,8,9}; //Columns 0 to 3
+// Keypad myKeypad= Keypad(makeKeymap(keymap), rowPins, colPins, numRows, numCols);
 
-//Code that shows the the keypad connections to the arduino terminals
-byte rowPins[numRows] = {2,3,4,5}; //Rows 0 to 3
-byte colPins[numCols] = {6,7,8,9}; //Columns 0 to 3
-//initializes an instance of the Keypad class
-Keypad myKeypad= Keypad(makeKeymap(keymap), rowPins, colPins, numRows, numCols);
+char keymap[]= {
+  '1', '2', '3', 'A', 
+  '4', '5', '6', 'B', 
+  '7', '8', '9', 'C',
+  '*', '0', '#', 'D'
+};
+OnewireKeypad <Print, 16 > KP(Serial, keymap, 4, 4, A0, 5300, 1000);
+// OnewireKeypad <Print, 16 > KP(Serial, keymap, 4, 4, A0, 4700, 1000);
+// OnewireKeypad <Print, 16 > KP(Serial, keymap, 4, 4, A0, 2000, 330, 1000);
 
 void setup() {
   // put your setup code here, to run once:
@@ -43,7 +49,15 @@ void setup() {
   pinMode(RELAY_PIN, OUTPUT);
   SPI.begin();
   mfrc522.PCD_Init();
+
+  KP.SetHoldTime(100);
+  KP.SetDebounceTime(200);
+  KP.SetAnalogPinRange(1023.0);
+  KP.SetKeypadVoltage(5.0);
+
+  KP.ShowRange();
   Serial.println("Started");
+  
 }
 
 void loop() {
@@ -57,13 +71,42 @@ void loop() {
   }
 }
 
-void readKeypad(){
-  // put your main code here, to run repeatedly:
-  char c=myKeypad.getKey();
-  if(c != NO_KEY){
-    Serial.println("Key is: " + String(c));
-    handleKeyInput(c);
+void debugKeyPress(){
+  byte state = KP.Key_State();
+  switch (state)
+  {
+    case PRESSED:
+      Serial << "Pressed..." << "\n";
+      break;
+    case RELEASED:
+      Serial << "Released..." << "\n";
+      break;
+    case HELD:
+      Serial << "Holding down..." << "\n";
+      if (char key = KP.Getkey() == NO_KEY) {
+        Serial << "Couldn't find key\n";
+        Serial.println( float(analogRead(A0)) * (5/1023.0));
+      } else {
+        Serial << "Key: " << key << "\n";
+      }
+      break;
+    case WAITING:
+      Serial << "Waiting..." << "\n";
+      break;
   }
+  delay(100);
+}
+void readKeypad(){
+  // char c=myKeypad.getKey();
+  // debugKeyPress();
+  // byte state = KP.Key_State();
+  // if(state == RELEASED){
+    char c = KP.Getkey();
+    if(c != NO_KEY){
+      Serial.println("Key is: " + String(c));
+      handleKeyInput(c);
+    }
+  // }
 }
 
 void handleKeyInput(const char c){
