@@ -2,7 +2,7 @@
 #include "Adafruit_TCS34725.h"
 #include "LowPower.h"
 
-//#define DEBUG 1
+#define DE÷BUG 1
 
 #define PIR_PIN 8
 #define RED_LED_PIN 9

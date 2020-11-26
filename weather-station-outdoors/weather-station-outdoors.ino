@@ -12,13 +12,13 @@ DHT_Unified dht(DHTPIN, DHTTYPE);
 uint32_t delayMS;
 // --------
 
-//#define DEBUG 1
+#define DEBUG 1
 
 // ----- LDC I2C -------------
-#include <Wire.h> 
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x3F,16,2); 
+LiquidCrystal_I2C lcd(0x3F,16,2);
 // ---------------------------
 
 // -------- Thermistor ------
@@ -132,7 +132,7 @@ void initDHT22() {
   sensor_t sensor;
 
   dht.temperature().getSensor(&sensor);
-  
+
 #ifdef DEBUG
   Serial.println("------------------------------------");
   Serial.println("Temperature");
@@ -143,7 +143,7 @@ void initDHT22() {
   Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" *C");
   Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" *C");
   Serial.println("------------------------------------");
-  
+
   dht.humidity().getSensor(&sensor);
   Serial.println("------------------------------------");
   Serial.println("Humidity");
@@ -176,7 +176,7 @@ const float readBMP180() {
   if (event.pressure){
     /* Display atmospheric pressue in hPa */
     float pressure = event.pressure;
-    
+
 #ifdef DEBUG
     Serial.print("Pressure:    ");
     Serial.print(pressure);
@@ -209,10 +209,10 @@ float readMCP9808(){
 
   float c = mcp.readTempC();
 #ifdef DEBUG
-  Serial.print("Temp (MCP): "); Serial.print(c); Serial.println("*C"); 
+  Serial.print("Temp (MCP): "); Serial.print(c); Serial.println("*C");
 #endif
   mcp.shutdown(); // shutdown MSP9808 - power consumption ~0.1 mikro Ampere
-  
+
   return c;
 }
 // ---------------------------------
@@ -233,11 +233,11 @@ double readDHT22() {
   if (isnan(h)) {
     Serial.println("Error reading humidity!");
   }
-  
+
   if(isnan(h) || isnan(t)){
     return;
   }
-  
+
 #ifdef DEBUG
   Serial.print("T (DHT22): ");
   Serial.print(t);
@@ -254,7 +254,7 @@ float readUV() {
   int analogValue = analogRead(A1);
   float voltage = analogValue * (5 / 1023);
   float uvIndex = voltage / 0.1;
-  
+
 #ifdef DEBUG
   Serial.println(String("Analog UV val: ") + analogValue);
   Serial.println(String("UV Index: ") + uvIndex);
@@ -268,7 +268,7 @@ int calculateHeadIndex(float temp, float humidity){
   dht_raw.begin();
   boolean isFarenheit = false;
   float heatIndex = dht_raw.computeHeatIndex(temp, humidity, isFarenheit);
-  
+
 #ifdef DEBUG
   Serial.print("Heat index: ");
   Serial.print(heatIndex);
@@ -294,13 +294,13 @@ void writeLCD(char* msg, int col, int row){
 
 void emptyLCD(){
   writeLCD("                ",0,0);
-  writeLCD("                ",0,1);             
+  writeLCD("                ",0,1);
 }
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(57600);
-  
+
   // Initialize devices
   initDHT22();
   initThermistor();
@@ -327,13 +327,13 @@ void loop() {
   Serial.println("--- Performing readings ---");
   lcdMsg = String(temp2) + degreeC + ", " + humidity + "%";
   writeLCD(lcdMsg.c_str(), 0, 0);
-  
+
   lcdMsg = String(heatIndex) + degreeC + " (feel)";
   writeLCD(lcdMsg.c_str(), 0, 1);
-  
+
   delay(5000);
   emptyLCD();
-  
+
   lcdMsg = String(int(pressure)) + " hPa, " + String(int(uvIndex)) + "UV";
   writeLCD(lcdMsg.c_str(), 0, 0);
   if(uvIndex > 3){

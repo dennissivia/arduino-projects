@@ -4,6 +4,7 @@
 
 #define LED_PIN_LEFT 5
 #define LED_PIN_RIGHT 4
+#define BUZZER_PIN 12
 
 
 //#define BRIGHTNESS_MAX 900 replaced by potentiometer
@@ -69,9 +70,6 @@ const direction_t getDirection(int left, int right, int brightnessMax) {
   }
 }
 
-
-
-
 const String directionToString(const direction_t direction) {
   switch (direction) {
     case LEFT:
@@ -120,7 +118,7 @@ void indicateStop() {
 void indicatePanic() {
   for (int i = 0; i < 5; i++) {
     indicateForward();
-    delay(900);
+    delay(500);
     indicateStop();
   }
 }
@@ -147,7 +145,6 @@ void setSpeedMotor2(const unsigned int value){
     analogWrite(motorPinEN2, value);
   }
 }
-
 
 void driveForwards(unsigned long duration){
   Serial.println("Starting motor 1");
@@ -194,7 +191,7 @@ const unsigned int getDistance(){
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Wire.begin();
   mpu6050.begin();
   mpu6050.calcGyroOffsets();
@@ -248,6 +245,7 @@ void loop() {
   if(obstacleDistance < MIN_DISTANCE){
     Serial.println("Close obstacle found, stopping.");
     indicateStop();
+    tone(BUZZER_PIN, 2000, 500);
     delay(500);
     indicateLeft();
     turnLeft();

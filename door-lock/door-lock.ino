@@ -8,8 +8,8 @@
 #include "config.h"
 #define DEBUG 1
 
-#define RELAY_PIN A5 
-#define BUZZER_PIN A4
+#define RELAY_PIN 6 
+#define BUZZER_PIN 7
 
 #define RST_PIN 9
 #define SS_PIN 10
@@ -17,6 +17,7 @@ MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 byte tagID[5]; // input buffer for the tag serial
 
 String inputBuffer;
+char lastKey;
 short int inputBufferPos = 0;
 
 // const byte numRows= 4; //number of rows on the keypad
@@ -50,8 +51,8 @@ void setup() {
   SPI.begin();
   mfrc522.PCD_Init();
 
-  KP.SetHoldTime(100);
-  KP.SetDebounceTime(200);
+  KP.SetHoldTime(500);
+  KP.SetDebounceTime(300);
   KP.SetAnalogPinRange(1023.0);
   KP.SetKeypadVoltage(5.0);
 
@@ -71,42 +72,21 @@ void loop() {
   }
 }
 
-void debugKeyPress(){
-  byte state = KP.Key_State();
-  switch (state)
-  {
-    case PRESSED:
-      Serial << "Pressed..." << "\n";
-      break;
-    case RELEASED:
-      Serial << "Released..." << "\n";
-      break;
-    case HELD:
-      Serial << "Holding down..." << "\n";
-      if (char key = KP.Getkey() == NO_KEY) {
-        Serial << "Couldn't find key\n";
-        Serial.println( float(analogRead(A0)) * (5/1023.0));
-      } else {
-        Serial << "Key: " << key << "\n";
-      }
-      break;
-    case WAITING:
-      Serial << "Waiting..." << "\n";
-      break;
-  }
-  delay(100);
-}
 void readKeypad(){
-  // char c=myKeypad.getKey();
-  // debugKeyPress();
-  // byte state = KP.Key_State();
-  // if(state == RELEASED){
+  byte state = KP.Key_State();
+  if(state == PRESSED || state == HELD){
     char c = KP.Getkey();
     if(c != NO_KEY){
-      Serial.println("Key is: " + String(c));
-      handleKeyInput(c);
+      lastKey = c;
     }
-  // }
+  }else if(state == RELEASED){
+    if(lastKey){
+      Serial.println("Key is: " + String(lastKey));
+      handleKeyInput(lastKey);
+    }
+  }else{
+    // Serial.println("Waiting for input...")
+  }
 }
 
 void handleKeyInput(const char c){
@@ -137,6 +117,7 @@ void recordInput(const char c){
 void resetInputBuffer(){
   inputBuffer    = "";
   inputBufferPos = 0;
+  lastKey = NULL;
 }
 
 void indicateCorrectKey(){}
@@ -170,7 +151,7 @@ void handleCodeValid(){
 boolean readTagID() {
   // Getting ready for Reading PICCs
   if ( ! mfrc522.PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
-    // Serial.println("no card present");
+    Serial.println("no card present");
     return false;
   }
   if ( ! mfrc522.PICC_ReadCardSerial()) {   //Since a PICC placed get Serial and continue
@@ -186,7 +167,7 @@ boolean readTagID() {
   }
   printTagID(tagID);
   printTagID(goodTagID);
-  mfrc522.PICC_HaltA(); // Stop reading
+  // mfrc522.PICC_HaltA(); // Stop reading
   return true;
 }
 

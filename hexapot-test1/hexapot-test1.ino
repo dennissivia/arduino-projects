@@ -869,7 +869,7 @@ void testIK(double posX = 0, double posY = 0, double posZ = 0, int rotX = 0, int
   // XXX we have to remind the servo angles, since the IK gives us the change in angle??
   moveCommandGroup(femurPins, servoFemurAngle, 500, false, DEGREE, true);
   moveCommandGroup(tibiaPins, servoTibiaAngle, 500, false, DEGREE, true);
-  delay(500);
+  delay(1000);
 }
 
 /* void applyIKtoServo(){ */
@@ -889,7 +889,9 @@ void moveSingleLeg(int legID, int posX, int posY, int posZ){
   vector<int> femurPins = {cRFFemurPin, cRMFemurPin, cRRFemurPin, cLRFemurPin, cLMFemurPin, cLFFemurPin };
 
   moveSingleServo(femurPins[legID], servoFemurAngle[legID] + posZ, 200, true);
+  legIK(legID, posX, posY, posZ);
   moveSingleServo(femurPins[legID], servoFemurAngle[legID],  200, true);
+  delay(100);
 }
 
 void setup() {
@@ -898,15 +900,15 @@ void setup() {
   initializeVectors();
   freeServos();
   setupMPU();
-  moveSingleServo(cRFCoxaPin, 0, 300, true);
-  moveSingleServo(cRMCoxaPin, 0, 300, true);
-  moveSingleServo(cRRCoxaPin, 0, 300, true);
-  moveSingleServo(cLRCoxaPin, 0, 300, true);
-  moveSingleServo(cLMCoxaPin, 0, 300, true);
-  moveSingleServo(cLFCoxaPin, 0, 300, true);
+  /* moveSingleServo(cRFCoxaPin, 0, 300, true); */
+  /* moveSingleServo(cRMCoxaPin, 0, 300, true); */
+  /* moveSingleServo(cRRCoxaPin, 0, 300, true); */
+  /* moveSingleServo(cLRCoxaPin, 0, 300, true); */
+  /* moveSingleServo(cLMCoxaPin, 0, 300, true); */
+  /* moveSingleServo(cLFCoxaPin, 0, 300, true); */
 
   // initial startup delay
-  delay(500);
+  delay(1000);
   playStartTone();
   // play tone, lid LED whatever
   performMPUMeasurement();
@@ -915,7 +917,7 @@ void setup() {
 }
 
 void loop() {
-  const unsigned int pauseTime = 2000;
+  const unsigned int pauseTime = 200;
   const unsigned int legLiftHeight = 40;
 
   // x, z
@@ -927,7 +929,7 @@ void loop() {
     delay(1000);
 
     testIK(0,0,defaultHeight,0,0,0);
-    delay(500);
+    delay(pauseTime);
     playStartTone();
     for(const auto& leg: {0,1,2}){
       moveSingleLeg(leg, 0,0,legLiftHeight);
@@ -942,7 +944,7 @@ void loop() {
     for(const auto& val: {30, 20, 0 ,20, 30 }){
       playStartTone();
       testIK(0,0,val,0,0,0);
-      delay(200);
+      delay(pauseTime);
     }
 
     // not sure what this is used for...
@@ -950,31 +952,31 @@ void loop() {
     // for(const auto& val: {20, 10, 0 -10, 0 }){
     //  playStartTone();
     //  testIK(0,0,20,0,val,0);
-    //  delay(500);
+    //  delay(pauseTime);
    // }
 
     // lean left right
     for(const auto& val: {10, 0, -10, 0 }){
       playStartTone();
       testIK(0,0,defaultHeight,0,0,val);
-      delay(200);
+      delay(pauseTime);
     }
 
     // lean front back
     for(const auto& val: {10, 25, 10, 0, -10, -25, 0 }){
       playStartTone();
       testIK(0,0,defaultHeight,val,0,0);
-      delay(200);
+      delay(pauseTime);
     }
 
     playStartTone();
-    testIK(0,0,defaultHeight,-10,0,0);
+    testIK(0,0,defaultHeight,-25,0,0);
     playStartTone();
-    moveCommandGroup({cRMCoxaPin, cLMCoxaPin}, {20, -20}, 1000, true);
-    delay(200);
+    /* moveCommandGroup({cRMCoxaPin, cLMCoxaPin}, {20, -20}, 1000, true); */
+    /* delay(pauseTime); */
 
     moveCommandGroup({cRFFemurPin, cLFFemurPin}, {80, -80}, 1000, true);
-    delay(200);
+    delay(pauseTime);
     moveCommandGroup({cRFFemurPin, cLFFemurPin}, {10, -10}, 1000, true);
 
     playStartTone();
